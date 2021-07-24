@@ -1,0 +1,219 @@
+
+	SpringMVC -- 界面层，接收用户请求，显示处理结果
+	Spring -- 业务层，处理业务逻辑，spring创建Service、Dao工具类对象
+	MyBatis -- 持久层，访问数据库，对数据增删改查
+
+**SpringMVC**
+	Spring是基于spring的一个框架，即一个模块，专门做web开发，可以说是servlet的一个升级
+	web开发底层就是servlet,框架是在servlet基础上加入一些功能，让web开发更方便
+	SpringMVC底层访问依旧是servlet  ----  DispatcherServlet
+	
+SpringMVC能够创建对象，放入到容器（SpringMVC容器）中，springMVC容器中放的是控制器对象
+	使用@Controller创建控制器对象，将对象放入到springMVC容器中，把创建的对象作为控制器使用。该控制器鞥接收用户的请求，显示处理结果，可当作一个servlet使用
+	使用@Controller注解创建的是一个普通类的对象，不是servlet，springMVC赋予了控制器对象额外的功能
+	web底层开发是servlet，springMVC中有一个对象是Servlet：DispatherServlet（中央调度器）,是一个servlet，父类继承HttpServlet
+	DispatherServlet（中央调度器）:负责接收用户的所有请求，用户将请求给了DispatherServlet，然后DispatherServlet将请求转发给Controller对象，最后Contractor对象处理请求。
+	
+	DispatherServlet（中央调度器）作用： 
+						1、创建WebApplicationContext对象、读取配置文件，进而创建控制器对象
+						2、是一个Servlet，要接收用户的请求，显示处理结果
+	
+	index.jsp/main.jsp/addUser.jsp  --->  DispatherServlet（Servlet) ---> 转发、分配给Controller对象(Controller创建的控制器对象
+	
+springMVC操作步骤：
+	1、新建Maven工程
+	2、加入依赖：spring-webmvc依赖，将SpringMVC依赖加入到项目中，jsp、servlet依赖
+	3、重点：在web.xml中注册springMVC框架的核心对象DispatherServlet
+		1)DispatherServlet：中央调度器，是一个servlet，分类继承HttpServlet
+		2)DispatherServlet也叫做  前端控制器（front controller)
+			java包里写的Mycontroller就是 后端控制器（back controller）
+		3)DispatherServlet负责接收用户提交的请求，调用其它的控制器对象，并将请求的处理结果显示给用户
+		
+	4、创建一个发起请求udall页面 index.jsp
+	5、创建控制器类（处理器）--> 处理web请求
+		1）在类上方加入@Controller注解，创建对象，并放入到springMVC容器中（创建控制器类的对象，接收请求并处理请求）
+		2）在类方法上面加入@RequesMapping注解（请求映射，将请求绑定到一个方法，让该方法处理请求）
+			(1)value:请求的url地址，唯一值
+			(2)method:请求的方式，使用RequestMethod类的枚举值，例如get请求，RequestMethod.Get
+		3）接收用户提交的参数
+			(1)HttpServletRequest,HttpServletRequest,HttpSession可以直接出现在处理器方法的参数位置
+			(2)逐个接收参数表，处理器方法的形参名和请求中参数名议员，按名称相应赋值
+			(3)解决请求中post方式有中文乱码，使用过滤器解决问题：CharacterEncodingFilter
+		
+	6、创建一个作为结果的jsp，显示请求的处理结果
+	7、创建springMVC的配置文件（spring配置文件）
+		1）声明组件扫描器，指定@Controller注解所在的包名
+		2）声明视图解析器，帮助处理视图
+		
+	servlet初始化会执行init()方法，DispatherServlet在init()中{
+		//创建容器，读取配置文件
+		WebApplicationContext ctx = new ClassPathXmlApplicationContext("springmvc.xml");
+		//将容器对象放入到ServletContext中
+		getServletContext().setAttribute(key,ctx);
+	}
+	
+	
+---------------------------------------------------------------------------------
+springMVC请求的处理流程
+	1）发起some.do
+	2）tomcat（web.xml中url--pattern知道 *.do的请求，转到中央调度器DispatcherServlet）
+	3）DispatcherServlet(根据springmvc.xml配置知道some.do----doSome())
+	4）DispatcherServlet将some.do转发给MyController.doSome()方法
+	5）框架执行doSome()将得到ModelAndView进行处理，转发到show.jsp
+	即：some.do --> DispatcherServlet --> MyController
+	
+总结就是：index.jsp前端向服务器发送一个some.do --> 
+		  通过url-pattern中的*.do映射，将请求发给myweb对应的中央调度器DispatcherServlet -->
+		  DispatcherServlet读取springmvc.xml配置文件，对应到其中的组件扫描器并创建对象，得知some.do对应doSome()，将some.do转发给MyController.doSome()方法 -->
+		  框架执行doSome()方法，将返回的modelAndView转发到show.jsp
+	
+SpringMVC执行时，源代码分析
+1）tomcat启动，创建容器的过程
+	通过load-on-startup 标签指定的1,创建DispatcherServlet对象，DispatcherServlet的父类是HttpServlet，是一个Servlet，被创建时，会执行init()方法
+	在init()方法中{
+		//创建容器，读取配置文件
+		WebApplicationContext ctx = new ClassPathXmlApplicationContext("springmvc.xml");
+		//将容器对象放入到ServletContext中
+		getServletContext().setAttribute(key,ctx);
+	}
+	以上创建容器的作用：创建@controller注解所在类的对象，创建MyController对象
+	该对象放入到springMVC容器中，容器是map，类似map.put("myControlller",MyController对象)
+	
+2）请求的处理过程
+	执行service的service():service() --> doService() --> doDispatch()[会调用MyController的doSome方法]
+	
+	(1)执行service的service()：
+		protected void service(HttpServletRequest request,HttpServletResponse response)
+	(2)doService():
+		protected void doService(HttpServletRequest request, HttpServletResponse )
+	(3)doDispatch(): //即为中央调度器DispatcherServlet.doDispatch()
+		this.doDispatch(request,response){
+			[会调用MyController的doSome方法]
+		}
+	
+处理器方法的参数：
+
+	接受请求参数，使用的处理器方法的形参：
+		HttpServletRequest
+		HttpServletResponse
+		HttpSession
+		请求中所携带的请求参数
+	接收用户提交的参数：
+		逐个接收
+		对象接收
+
+	***逐个接收***	
+	框架接收请求参数的过程（SpringMVC03_receiveparam）
+		1、使用request对象接收请求参数：
+			String strName = request.getParameter("name");
+			String strAge = request.getParameter("age");
+			
+		2、springMVC框架通过DispatcherServlet调用MyController的doSome()方法
+			调用方法时，按照名称对应，将接收的参数赋值给形参：doSome(strName,Integer.valueOf(strAge))
+			框架会提供类型转换的功能，将String转为int、long、float、double等类型
+		
+		注：提交请求参数时，get方式接收中文正常，而post会出现乱码
+			解决方法：使用过滤器处理乱码问题（框架中的过滤器 CharacterEncodingFilter） --- 在web.xml中定义引用
+			
+	* 请求中参数名和处理器方法的形参名不一致
+		 * @RequestParam：解决请求中参数名和形参名不一致的问题（只能用在逐个接收里面）
+		 *          属性： 1、value：请求中的参数名称
+		 *                 2、required：表示请求中必须包含此参数
+		 *          位置：在处理器方法形参定义前面
+		 
+	***对象接收***
+		 * 处理器方法形参是java对象，盖对象的属性名和请求中参数名是一致的
+		 * 框架会创建形参的java对象，给属性赋值，请求中的参数是name，框架会调用setName()
+     * 类似set注入
+
+处理器方法的返回值	 
+	返回ModelAndView
+	返回String
+	返回void
+	返回对象Object
+	
+	**返回ModelAndView**：有数据和视图，跳转页面并转发数据，即对视图执行forward。若只需要转发页面或只转发数据，则可以考虑返回String、页面ajax等其他方法
+		public ModelAndView receiveparam(@RequestParam("rname")  String name,
+										 @RequestParam("rage") Integer age){
+			ModelAndView modelAndView = new ModelAndView();
+			//框架会自动赋值，处理完some.do请求，相当于service调用处理完成
+			modelAndView.addObject("myname", name);
+			modelAndView.addObject("myage", age);
+			modelAndView.setViewName("show");
+			return modelAndView;
+
+		}
+		
+	**返回String**：表示视图，可以是逻辑名称，也可以是完整视图路径（处理器返回的字符串可以指定逻辑视图名，通过试图解析器解析可以将其转换为物理视图地址）
+		1)处理器方法返回String：表示逻辑视图名称，需要配置视图解析器
+		2)处理器方法返回String：表示完整视图路径，则不需要配置视图解析器
+		
+	**返回void**：不能表示数据，也不能表示视图
+		在使用ajax时，可以使用void返回值，通过HttpServletResponse输出数据，响应ajax请求。ajax请求服务器返回的是数据， 和视图无关
+		处理器方法返回void，响应ajax请求
+		 * 手工实现ajax，json数据：代码有重复：
+		 *                      1、java对象转为json
+		 *                      2、通过HttpServletResponse输出json数据
+		 *      				   代码重复的部分应交给框架去做，只需关注业务逻辑即可
+	
+	**返回Object**（SpringMVC处理方法将对象输出json）
+		Object返回值代表的是数据，不是视图。Object对象可以是Integer,String,Map,List,自定义对象等，对象Object有属性，属性就是数据,则可以使用对象表示的数据，响应ajax请求。
+		实现ajax请求，主要使用json的数据格式，现在实现步骤：
+		1、加入处理json的工具库的依赖，springMvc默认使用的jackson依赖
+		2、在springMvc配置文件之间加入注解驱动 <mvc:annotation-driven>
+			完成的功能相当于：json = om.writeValueAsString(user);
+		3、在处理器方法上面加入@ResponseBody注解
+			完成的功能相当于：
+			response.setContentType("application/json;charset=utf-8");
+			PrintWriter pw = response.getWriter();
+			pw.println(json);
+			
+		springmvc处理器方法返回Object，可以转为json输出到浏览器，响应ajax请求的内部原理：
+			1、<mvc:annotation-driven>注解驱动：
+				注解驱动加入到springmvc配置文件后，会自动创建HttpMessageConverter接口的7(8)个实现类对象，
+				包括 MappingJackson2HttpMessageConverter(使用jackson工具库中的ObjectMapper实现java对象转为json字符串)、StringHttpMessageConverter(负责读取字符串格式的数据和写出字符串格式的数据)
+				注解驱动实现的功能是：完成java对象到json、xml、text、二进制等数据格式的转换
+				HttpMessageConverter接口 == 消息转换器  
+				功能：定义了java转为json、xml等数据格式的方法，该接口有很多的实现类，这些实现类完成 java对象到json、java对象到xml、java对象到二进制数据的转换
+	
+			2、@ResponseBody注解：放在处理器方法的上面，通过HttpServletResponse输出json数据，响应ajax请求
+				返回对象框架的处理流程：
+			 *      1）框架将返回的user类型，调用框架中的ArrayList<HttpMessageConverter>中每个类的canWrite()方法，检查HttpMessageConverter接口的实现类，处理user类型的数据
+			 *      2）框架调用实现类的write()，MappingJackson2HttpMessageConverter的write()方法，将赋值后的user对象转为json，调用Jackson的ObjectMapper实现转为json
+			 *      3）框架调用@ResponseBody，将2）的结果数据输出到浏览器，ajax请求处理完成
+	
+tomcat本身能处理静态资源的访问，例如html、图片、js文件等
+tomcat的web.xml文件有一个servlet，名称是default，在服务器启动时创建，作用：
+																	1、处理静态资源
+																	2、处理未映射到其他servlet的请求
+							
+	url-pattern里面使用“/”：若项目中使用了“/”，则会替代tomcat中的default。即myweb代表的处理器得处理静态资源，导致所有静态资源都给DispatcherServlet处理，默认情况下DispatcherServlet没有处理静态资源的能力，没有控制器对象能处理静态资源的访问，但可以访问动态资源
+	 解决方法：
+		1、在springmvc配置文件中加入<mvc:default-servlet-handler>
+		   加入该标签后，框架会创建控制器对象DefaultServletHttpRequestHandler(类似自己创建的controller)
+		   DefaultServletHttpRequestHandler对象：可以将接收的请求转发给 tomcat的default这个servlet，来处理静态资源的访问
+		   以及加入注解驱动<mvc:annotation-driven />：<!--default-servlet-handler和 @RequestMapping注解有冲突，加入annotation-driven可解决问题-->
+		 
+		2、使用 <mvc:resources />
+			mvc:resources : 加入后框架会创建 ResourceHttpRequestHandler这个处理器对象
+			让此对象处理静态资源的访问，不依赖tomcat服务器
+			mapping：访问静态资源的uri地址，使用通配符 **
+			location：静态：静态资源在项目中的目录位置
+			
+绝对路径和相对路径
+	1、相对地址/路径：无协议开头的，如user/some,在jsp、html使用的地址，都是在前端页面中的地址，都是相对地址
+				   相对地址不能独立使用，必须有一个参考地址，通过 参考地址+相对地址 才能指定资源
+	2、绝对地址/路径：带有协议名称，如 http://www.baidu.com
+	3、参考地址：在页面中，访问地址不加“/”
+		当访问地址没有斜杠开头，例如 user/some ，当点击链接时，访问地址则是当前页面的地址+链接的地址 如：http://localhost:8080/urlpath/ + user/some
+		
+		当访问地址有斜杠开头，例如 /user/some，当点击链接时，则访问地址变为：http://localhost:8080//user/some
+		此时参考地址为服务器地址，即：http://localhost:8080
+		
+		若资源不能访问，则需加入el表达式 ${pageContext.request.contextPath}: <a href="${pageContext.request.contextPath}/user/some"></a>
+		
+		同时加入一个base标签，是html语言中的标签，表示当前页面中访问地址的基地址。当页面中所有 没有以"/"开头的地址，都是以base标签中的地址为参考地址
+		此时访问地址为 base中的地址 + user/some
+		框架中可以动态获取基地址：
+			String basePath = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath() + "/";
+		

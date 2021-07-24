@@ -1,0 +1,13 @@
+springboot连接redis报错 Unable to connect to Redis; nested exception is io.lettuce.core.RedisConnectionException 
+	同时还报错springboot整合redis时java.io.IOException: 你的主机中的软件中止了一个已建立的连接错误
+原因排查：
+1、修改application.yml/properties 的redis配置中的spring.redis.timeout中连接超时时间
+2、linxu中找到redis的配置文件 redis.conf
+     1）在redis配置文件redis.conf中修改参数：注释掉 #bin 127.0.0.1 (原因：bind 127.0.0.1生效，只能本机访问redis)
+     2）在redis配置文件redis.conf中修改参数：将 protected-mode yes 改为：protected-mode no （原因：把yes改成no，允许外网访问）
+     3）将 daemonize yes 改为 daemonize no；该错误跟个属性基本没有关系，只是为了让redis在后台运行，不用打印很多日志
+3、在linux中执行： /sbin/iptables -I INPUT -p tcp --dport 6379 -j ACCEPT
+4、若用3还是未能解决问题，则考虑修改redis的配置文件 redis.conf中的端口号port，例如改为6380，然后重启：
+	redis-server redis.conf &
+	redis-cli -p 6380
+     在springboot配置文件中改为：spring.redis.port=6380

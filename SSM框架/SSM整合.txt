@@ -1,0 +1,154 @@
+***SSM整合***
+整合开发思路：SpringMvc + Spring + MyBatis
+	用户发起请求 -- SpringMVC接收 -- Spring中的Service对象 -- MyBatis处理数据 -- 将数据交给Service -- SpringMVC通过处理器返回值将结果呈现给用户（前端）
+	
+SSM整合也叫做SSI（IBatis也就是myBatis的前身），整合中有容器
+	1、第一个容器就是SpringMVC容器，管理Controller控制器对象；
+	2、第二个容器是Spring容器，管理Service、Dao、工具类对象。
+	整合就是将使用的对象交给合适的容器创建和管理，将Controller还有web开发的相关对象交给SpringMVC容器，这些web用的对象写在Springmvc配置文件中
+	service、dao对象定义在spring的配置文件中，让spring管理这些对象
+	
+	springmvc容器和spring容器是有关联的，且这关联都已经确定好：springmvc容器是spring容器的子容器，类似java中的继承，即子对象可以访问父的内容;
+	所以在子容器中的Controller可以访问父容器中的Service对象，就可以实现controller使用service对象
+	
+	创建容器：
+		1、创建springmvc容器对象：使用的中央调度器DispatcherServlet
+		2、创建spring容器对象，使用监听器ContextLoaderListener
+	
+实现的步骤：
+	1、使用mysql库，表使用student；
+	2、新建maven web项目；
+	3、加入依赖：springmvc、spring、mybatis三个框架的依赖，jackson依赖，mysql驱动，druid连接池，jsp，servlet依赖
+	4、写web.xml:
+		1)注册DispatcherServlet，目的：1)创建springmvc容器对象，才能创建Controller类对象
+									   2)创建Servlet，才能接受用户的请求。
+		2)注册spring的监听器：ContextLoaderListener，目的：创建spring的容器对象，才能创建service、dao对象
+		3)注册字符集过滤器，解决post请求乱码的问题。
+		
+	5、创建包，Controller包，service，dao，实体类包名创建好
+	6、写springmvc、spring、mybatis的配置文件
+		1）springmvc配置文件
+		2）spring配置文件
+		3）mybatis主配置文件
+		4）数据库iude属性配置文件
+		
+	7、写业务代码，dao接口和mapper文件、service和实现类，controller，实体类
+	8、写jsp页面
+	
+核心技术：请求重定向和转发
+	SpringMVC框架将Servlet中的请求转发和重定向操作进行了封装：
+		1、forward:表示转发，实现：request.getRequestDispatcher("xx.jsp").forward()，处理器方法返回ModelAndView，实现转发forward
+			语法：setViewName("forward:视图文件完整路径")
+			特点：不和视图解析器一同使用，就当项目中没有视图解析器
+			用法：可以转发到视图解析器以外的视图页面（因为视图解析器下的页面转发路径只需用逻辑名称即可，使用forward的话可以使用其他视图的完整路径
+			eg:mv.setViewName("forward:/hello.jsp")
+			
+		2、redirect:表示重定向，实现response.sendRedirect("xx.jsp")，处理器方法返回ModelAndView，实现重定向redirect
+			语法：setViewName("redirect:视图完整路径")
+			特点：不和视图解析器一同使用，就当项目中没有视图解析器
+			框架对重定向的操作：
+				1）会将Model中的简单类型的数据，转为String使用，作为第二次转发的get请求参数使用：目的是在两次请求之间传递数据
+				2）在目标页面中可以使用参数集合对象${param.xxx}获取请求参数值，相当于<%=request.getParameter("myname")%>
+				3）重定向不能访问/WEB-INF下的资源
+			用法：进行两次请求
+			eg：eg:mv.setViewName("redirect:/hello.jsp")
+			
+集中统一异常处理：
+	将try...catch去掉，作为统一处理，使用AOp设计思想，进行分离
+	springmvc框架采用的是统一、全局的异常处理，将controller中的所有异常处理都集中在同一地方，采用aop的设计思想，将业务逻辑和异常处理代码分开，实现了解耦和
+	
+	使用两个注解：
+		@ExceptionHandler
+		@ControllerAdvice：控制器增强（给控制器类增加功能--异常处理功能），位置：在类的上面加入@ControllerAdvice
+					特点：必须让框架知道此注解所在的包名，必须在spingmvc配置文件中声明组件扫描器，即指定@ControllerAdvice所在的包名
+		
+		
+	异常处理步骤：
+		1）新建maven web项目；
+		2）加入依赖；
+		3）新建一个自定义异常类 MyUserException,再定义子类NameException、AgeException
+		4）在controller中抛出NameException、AgeException
+		5）创建一个普通类，作用全局异常处理类
+			（1）在类的上面加入@ControllerAdvice
+			（2）在类中定义方法，方法的上面加入@ExceptionHandler
+		6）创建处理异常的视图页面
+		7）创建springmvc的配置文件
+			（1）组件扫描器，扫描@Controller注解
+			（2）组件扫描器，扫描@ControlleAdvice所在的包名
+			（3）声明注解驱动
+	
+	异常发生时处理逻辑：
+		1、需要将异常处理逻辑，记录到数据库、日志文件：记录日志发生的时间、哪个方法发生的、异常错误内容
+		2、发送通知，将异常的信息通过邮件、短信、微信发送给相关人员
+		3、给用户友好的提示
+			
+			
+拦截器：是springmvc中的一种，需要实现HandlerInterceptor接口
+		可以看作是多个Controller中公用的功能，集中到拦截器统一处理，使用的aop思想
+	1、功能和过滤器类似，方向侧重点不同，过滤器是用来过滤请求参数，设置编码字符集等工作；拦截器是拦截用户的请求，做请求判断处理的。
+	2、拦截器是全局的，可以对多个Controller做拦截，一个项目中可以有0个或多个拦截器，在一起拦截用户的请求
+	   常用在：用户登录处理，权限检查，记录日志等中；
+	3、使用步骤：
+		1）定义类实现HandlerInterceptor接口
+		2）在springmvc配置文件中，声明拦截器，让框架知道拦截器的存在
+	4、拦截器的执行时间：
+		1）在请求处理之前，也就是controller类中的方法执行前先被拦截；
+		2）在控制器方法执行后也会执行拦截
+		3）在请求处理完成后也会执行拦截器
+		
+	拦截器类：
+		1、  * preHandle:预处理方法，是整个项目的入口、门户。当preHandle返回true时，请求可以被处理；若返回false，则请求到此方法就被截止
+			 * 参数：Object handler（被拦截的控制器对象）
+			 * 返回值boolean：true false
+			 *
+			 * 特点：1、方法在控制器方法（MyController的doSome)之前先执行，用户的请求先到达此方法
+			 *       2、在此方法中可以获取请求的信息，验证请求是否符合要求：验证用户是否登陆/验证用户是否有权限访问某个url
+			 *          若验证失败，可以截断请求，则请求不能被处理；若验证成功，可以放行请求，则此时控制器方法才能执行
+			 
+		2、	 * postHandle：后处理方法
+			 * 参数：Object handler（被拦截的控制器对象MyController）
+			 *      ModelAndView modelAndView (处理器方法的返回值)
+			 * 特点： 1、在处理器方法(如：MyController.doSome())之后执行的
+			 *        2、能获取到处理器方法的返回值ModelAndView，可以修改ModelAndView中的数据和视图，可以影响最后的执行结果
+			 *        3、对原来的执行结果做二次修正
+			 
+		3、  * afterCompletion：最后执行的方法
+			 * 参数：Object handler（被拦截的控制器对象）
+			 *      Exception ex（程序中发生的异常）
+			 * 特点：1、在请求处理完成后执行，框架中规定当视图处理完成后，对视图执行了forward，则认为请求处理完成
+			 *      2、一般做资源回收工作，程序请求过程中创建了一些对象，此处可以删除，将占用的内存回收
+			 
+		注：只要preHandle中返回true，则一定会执行当前拦截器下的 afterCompletion,postHandle则看处理器方法有没有执行
+			 
+	多个拦截器同时工作时，先执行的拦截器会包着后执行的拦截器，像一个回字一样，层层穿透执行。只要有一个拦截器的preHandle返回为false，则处理器方法必不会被处理。
+	
+拦截器和过滤器的区别：
+	1、过滤器是Servlet中的对象，拦截器是框架中的对象。拦截器脱离框架则不存在，过滤器只要存在服务器或符合Servlet规范，则一定会存在。
+	2、过滤器是实现Filter接口的对象，拦截器是实现HandlerInterceptor;
+	3、过滤器是用来设置request、response的参数、属性的，侧重对数据的过滤；而拦截器是用来验证请求的，能截断请求
+	4、过滤器是在拦截器之前执行的
+	5、创建方式：过滤器是Tomcat服务器创建的对象，拦截器是springmvc容器中创建的对象
+	6、过滤器只有一个执行时间点，过滤器有三个执行时间点
+	7、过滤器可以处理jsp、html、js等等，拦截器侧重于拦截Controller的对象，若请求不能被中央调度器DispatcherServlet接收，则该请求不会执行拦截器内容
+	8、拦截器拦截普通类方法执行，过滤器过滤Servlet请求响应
+	
+	
+SpringMvc内部处理请求：
+1、用户发起请求 
+2、DispatcherServlet接收请求，将请求转交给 处理器映射器（从容器中拿到处理器对象）
+	处理器映射器：springmvc框架中的一种对象，框架将实现了HandlerMapping接口的类都叫做映射器（多个）
+	处理器映射器作用：根据请求，从spingmvc容器对象中获取处理器对象(MyController controller = ctx.getBean("Some.do"))
+					  框架将找到的处理器对象放到一个叫做处理器执行链（HandlerExecutionChain）的类保存
+					  HandlerExecutionChain：类中保存有：1）处理器对象(MyController);
+														 2）项目中的所有拦截器List<HandlerInterceptor>
+3、DispatcherServlet 将2中的HandlerExecutionChain中的处理器对象交给处理器适配器对象（多个）
+	处理器适配器：springmvc框架中的对象，需要实现HandlerAdapter接口
+	处理器适配器的作用：执行处理器方法（调用MyController的方法，得到返回值ModelAndView，再返回给中央调度器DispatcherServlet）
+4、DispatcherServlet 将3中得到的ModelAndView交给视图解析器对象
+	视图解析器：springmvc中的对象，需要实现ViewResoler接口（可以有多个）
+	视图解析器左右：组成视图完整路径，使用前缀、后缀，并创建view对象
+		view是一个接口，表示视图，在框架中jsp、html不是String表示，而是使用view和实现类来表示视图
+		InternalResourceView：视图类，表示jsp文件，视图解析器会创建 InternalResourceView类对象，这个对象里面，有一个属性 url=/WEB-INF/view/show.jsp(路径)
+5、DispatcherServlet 将4中创建的View对象获取到，调用View类自己的方法，将Model数据放入到request作用域，执行对象视图的forward，请求结束。
+	（具体流程图见图片 SpringMvc执行流程 ）
+	

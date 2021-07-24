@@ -1,0 +1,237 @@
+为什么要用SpringBoot：
+	SpringBoot用来简化Spring应用程序的创建和开发过程，及能简化SSM框架进行开发的过程
+	采用SSM整合开发时，搭建和整合三大框架要做很多工作，比如配置web.xml、配置Spring、配置Mybatis，最后再整合在一起。
+	而SpringBoot框架完全抛弃了繁琐的xml配置过程，采用大量的默认配置来简化开发过程。所以采用Spring Boot可以很容易也很快速的创建基于Spring框架的应用程序，让开发变得极其简单和快速，让精力放在业务上。
+	
+SoringBoot特性：
+	1、能快速创建基于Spring的应用程序
+	2、使用嵌入式的Servlet容器，能够直接使用java main方法启动内嵌的Tomcat服务器运行Spring Boot程序，不需再部署war包文件
+	3、提供约定的starter POM来简化Maven配置，让Maven配置变得简单
+	4、自动化配置，根据项目的Maven依赖配置，SpringBoot自动配置Spring、Spring mvc等
+	5、提供程序的健康检查等功能
+	6、基本可以完全不使用xml配置文件，采用注解配置
+	7、准生产环境的运行时应用监控
+	8、与云计算的天然集成 
+	
+SoringBoot四大核心：
+	1、自动配置
+	2、起步依赖
+	3、Actuator：健康检测（基本用不到）
+	4、命令行界面（基本用不到）
+	
+项目结构：
+	static：存放静态资源，如图片、CSS、JavaScript等
+	templates：存放Web页面的模板文件
+	application.properties/application.yml：用于存放程序的各种依赖模块配置信息，比如服务端口，数据库连接配置等
+
+SpringBoot集成第三方组件的步骤：
+	1、加入依赖（starter）
+	2、配置application.properties文件
+	3、编写代码
+
+@SpringBootApplication：会扫描Spring和SpringMvc的注解
+
+***properties格式核心配置文件*****
+	键值对的properties属性文件配置方式
+	核心配置文件：application.properties只能有一个
+
+***yaml格式的核心配置文件****
+	yml是一种yaml格式的配置文件，主要采用一定的空格、换行等格式排版进行配置
+	yaml是一种直观的能够被计算机识别的数据序列化格式，易被人阅读，yaml类似于xml，但语法比xml简洁很多，值与前面的冒号配置项必须要有一个空格，yml后缀也可使用yaml后缀
+
+注：不能出现 properties 和 yml 两个配置文件同时存在，
+
+***多环境配置（properties 和 yml 都适用）***
+	实际开发过程中，项目会经历很多阶段（开发-测试-上线）,每个阶段配置都会不同，例如端口、上下文根、数据库等，为了方便在不同的环境之间切换，SpringBoot提供了多环境配置：
+	子环境核心配置文件的名称是以 application-xxx.properties
+	主核心配置文件只有一个：application.properties,且在核心配置文件中需指定其中一个配置文件生效
+		在主核心配置文件中，通过spring.profiles.active=xxx来指定子环境核心配置文件生效
+		
+	在配置文件中，自定义配置参数（配置数据库参数等）：
+		1)使用@Value注解；逐个读取application.properties中的配置
+		2)使用@ConfigurationProperties：将整个文件映射成一个对象，用于自定义配置项较多的情况；
+			@Component  //将此类加载到Spring容器中
+			@ConfigurationProperties(prefix = "xxx")  --- xxx为对象名字
+		  注：使用ConfigurationProperties注解后，IDEA会出现一个警告，但此警告不影响程序的执行，忽略警告的方法：
+			在pom.xml中增加一个依赖：
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-configuration-processor</artifactId>
+				<optional>true</optional>
+			</dependency>
+				
+**SpringBoot集成jsp**
+	1、创建一个webApp文件夹来存放jsp页面:在module里面的web Resource Directories里面将webapp设置为web Resource Directory
+	2、添加一个springboot工程内嵌Tomcat对jsp解析的一个依赖
+		<!--springboot框架内嵌Tomcat对象jsp的解析依赖-->
+		<dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-jasper</artifactId>
+        </dependency>	
+		同时在<build>里面添加：
+		<!--springboot框架集成jsp，指定jsp文件编译的路径META—INF/resources-->
+        <resources>
+            <!--指定源文件路径-->
+            <resource>
+                <!--指定源文件路径-->
+                <directory>src/main/webapp</directory>
+                <!--指定编译路径-->
+                <targetPath>META—INF/resources</targetPath>
+                <includes>
+                    <include>*.*</include>
+                </includes>
+            </resource>
+
+            <!--指定上面指定后，原有的类路径指定会发生变化，所以还需指定原有路径的resource-->
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.*</include>
+                </includes>
+            </resource>
+        </resources>
+		
+	3、springboot工程指定jsp文件编译的路径META-INF/resources
+		
+	
+		
+**SpringBoot集成mybatis***
+	1、添加依赖(MyBatis、连接数据库的驱动)
+		<!--Mysql驱动-->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+		</dependency>
+	2、连接数据库的配置
+		#连接数据库信息
+		spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver		spring.datasource.url=jdbc:mysql://localhost:3306/student?useUnicode=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Asia/Shanghai
+		spring.datasource.username=root
+		spring.datasource.password=abcd
+	3、通过MyBatis逆向工程生成：数据持久层和实体bean --- 通过数据库的结构，来反向生成工程类的映射文件
+	注：需在pom.xml文件中添加mysql反向工程依赖
+		<!--mybatis 代码自动生成插件-->
+		<plugin>
+			<groupId>org.mybatis.generator</groupId>
+			<artifactId>mybatis-generator-maven-plugin</artifactId>
+			<version>1.3.6</version>
+			<configuration>
+				<!--配置文件的位置-->
+				<configurationFile>GeneratorMapper.xml</configurationFile>
+				<verbose>true</verbose>
+				<overwrite>true</overwrite>
+			</configuration>
+		</plugin>
+		
+	@Mapper作用：mybatis自动扫描数据持久层的映射文件及Dao接口的关系（默认情况下，Mybatis的xml映射文件不会编译到target的class目录下，所以需要在pom.xml文件中配置resource
+		需要在每一个Mapper接口类上添加，作用是扫描dao接口
+		
+	
+	关于Mapper映射文件存放的位置写法（扫描xml文件）：
+		1、Mapper接口文件(Dao类）和Mapper映射文件(xml文件)放在同个文件夹(src/main/java)下：@MapperScan(basePackages = "com.power.springboot.mapper")	//开启扫描Mapper接口的包以及子目录   --- 为了编译时能在同一目录下找到相关文件
+		   @MapperScan直接在SpringBoot启动入口上添加，指定扫描包的路径(basePackages 可省略)
+		   还需在pom文件中手动指定资源文件夹路径resources
+		2、Mapper接口文件(Dao类）和Mapper映射文件(xml文件)分开存放：
+			Mapper接口文件放在src/main/java中，Mapper映射文件放在类路径resources下，则在application.properties里面指定mybatis映射文件的路径，此时在pom文件里面则不需要手动指定文件夹为resources
+	
+***SpringBoot项目下使用事务
+	事务是一个完整的功能/业务，SQL语句有：DML，DQL，DDL，TCL，DCL，而事务只跟DML语句有关：即增、删、改
+	在接口类方法上添加@Transactional
+		
+	
+***SpringMvc常用注解****
+	1、@RestController:相当于控制层类上加了 @Controller + 方法上加了@ResponseBody
+	   即意味着当前控制层类中所有方法返回的都是Json对象
+	2、@GetMapping(value = "/queryStudentById2") 相当于下面语句：              ----查询
+	   @RequestMapping(value= "/queryStudentByID2",method = RequestMethod.GET)
+	   该注解通常是在查询数据时使用，若用post请求，则会报405错误（浏览器地址栏请求的方法都是GET）
+	3、@PostMapping(value = "/insert") 相当于下面语句：              ----新增
+	   @RequestMapping(value= "/insert",method = RequestMethod.POST)
+	   该注解通常在新增数据时使用
+	4、@DeleteMapping(value = "/delete") 相当于下面语句：              ----删除
+	   @RequestMapping(value= "/insert",method = RequestMethod.DELETE)
+	   该注解通常在删除数据时使用
+	5、@PutMapping(value = "/update") 相当于下面语句：              ----更新修改
+	   @RequestMapping(value= "/update",method = RequestMethod.PUT)
+	   该注解通常在修改数据时使用
+	
+**实现RESTful***（只是一种风格，不是标准/协议）
+	REST(Representational State Transfer) 是一种互联网软件架构设计的风格，不是标准/协议，只是提出了一组客户端和服务器交互时的架构理念和设计原则，使得接口可以更简洁、更有层次。
+	http接口： http://localhost:8080/boot/order?id=1021&status=1   -->   RESTful风格：http://localhost:8080/boot/order/1021/1
+	@PathVariable：获取url中的数据，该注解是RESTful中的一个主要的注解
+	
+	eg：
+		//遵循http请求格式
+		@RequestMapping(value = "/student")
+		public Object student(Integer id,Integer age,String name){
+			Student student = new Student();
+			student.setId(id);
+			student.setName(name);
+			student.setAge(age);
+
+			return student;
+		}
+
+		//遵循RESTful请求格式
+		@RequestMapping(value = "/student/detail/{id}/{age}")
+		public Object student01(@PathVariable("id") Integer id,
+								@PathVariable("age") Integer age) {
+			Map<String, Object> retMap = new HashMap<>();
+
+			retMap.put("id", id);
+			retMap.put("age", age);
+
+			return retMap;
+		}
+		
+	RESTful风格中方法若出现冲突：
+		1、通过注解来区分：按照增删改查的请求方式来区分
+			@DeleteMapping(value = "/student/detail/{id}/{age}")
+			@PostMapping(value = "/student/detail/{id}/{age}")
+		2、若都是同种请求方式，则依然会出现冲突：此时可以更改请求路径
+			@DeleteMapping(value = "/student/detail/{id}/{age}")
+			@DeleteMapping(value = "/student/{id}/detail/{age}")
+		注：RESTful原则
+			1、RESTful请求路径中使用的单词都是名称，最好不好动词
+				/boot/order/1021/1（推荐） 
+				/boot/queryOrder/1021/1（不推荐）
+			2、分页、排序等操作，不需要使用斜杠传参
+				/boot/orders?page=1&sort=desc（一般传的参数不是据库表字段，可以不采用斜杠）
+		
+**springboot集成redis***
+	1）添加依赖：操作redis数据类型的依赖
+	2）在springboot核心配置文件中添加redis的配置
+	
+	在springBoot2.x后，原来的Jedis被替换为lettuce
+		jedis：采用的直连，多个线程操作的话，不安全，若要避免不安全，则要使用jedis pool连接池，更像BIO模式
+		lettuce：采用netty，实例可以在多个线程中共享，不存在线程不安全的情况，可以减少线程数据，更像NIO模式
+	
+	RedisTemplate 源码分析
+		@ConditionalOnSingleCandidate(RedisConnectionFactory.class)
+		public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+		//默认的RedisTemplate 没有过多的设置，redis对象都需要序列化，后面可以自己定义一个RedisTemplate来替换该默认值
+		//两个泛型都是Object类型，自己使用后边需要强制转换<String,Object>
+			RedisTemplate<Object, Object> template = new RedisTemplate();
+			template.setConnectionFactory(redisConnectionFactory);
+			return template;
+		}
+
+		@Bean
+		@ConditionalOnMissingBean
+		@ConditionalOnSingleCandidate(RedisConnectionFactory.class)
+		//Strings是redis中最常用的类型，所以单独提出来一个bean
+		public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+			StringRedisTemplate template = new StringRedisTemplate();
+			template.setConnectionFactory(redisConnectionFactory);
+			return template;
+		}
+		 
+	放进redis后的数据是序列化之后的结果，即序列化的二进制结果
+	
+**springboot 集成 Dubbo分布式框架 ***
+	*接口工程：存放实体bean和业务接口
+	*服务提供者：业务接口的实现类并将服务暴漏且注册到注册中心，调用数据持久层
+		--添加依赖（dubbo。注册中心，接口工程）
+		--配置服务提供者核心配置文件
+	*服务消费者：处理浏览器客户端发送的请求，从注册中心调用服务提供者所提供的服务
+		--添加依赖（dubbo。注册中心，接口工程）
+		--配置服务消费者核心配置文件

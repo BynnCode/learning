@@ -1,0 +1,131 @@
+java代码中将实际值传入到mapper中：
+	1、一个简单类型的参数：#(任意字符)
+	2、多个简单类型的参数，使用@Param('自定义名称')
+	3、使用一个java对象，对象的属性值作为mapper文件的寻找参数，#(java对象的属性名称)
+	4、Mybatis中多个参数传参，按位置传参，使用#{agr0}，#{agr1}
+	 不利处：一定要按照顺序进行传参，很容易出错，比较麻烦
+	 
+	5、Mybatis中多个参数传参，使用Map存放多个值：
+		不利：1）map中的定义太随意性，Map<String,Object> data = new HashMap<>();
+									  data.put("myname","张三");
+									  data.put("age","28"
+			若将age->age1，mapper中age=#{age} -> age=#{age1},不方便
+			  2）只看方法定义：List<student> selectMultiByMap(Map<String,Object) map);
+				无法知道map中参数的个数、参数的类型（阿里巴巴的java开发手册里面指明，参数部分不建议使用map）
+
+**、#和$的区别
+	#:占位符，使用实际的参数值代替，并使用PrepareStatement对象执行sql语句，#{}代替sql语句的？，更安全更迅速（代表的是值）
+	$:字符串替换，使用$包含的”字符串“替换所在位置，使用Statement把sql语句和${}的内容进行连接，主要用在替换表名、列名、不同列排序等操作（前提是确定数据是安全的）
+	
+	能用#的地方用$也是可以实现的，但使用Statement对象执行sql，效率比PrepareStatement低，安全性低，容易发生sql注入
+	
+	区别：
+	1、#使用"?"在sql语句做占位，使用PrepareStatement对象执行sql语句，效率高
+	2、#能够避免sql注入，更安全
+	3、$不使用占位符，是字符串连接方式，使用Statement对象执行sql，效率 低
+	4、$有sql注入的风险，缺乏安全性
+	5、$可以替换表名或列名，实现切换查询
+	
+**Mybatis的动态代理：Mybati创建dao接口的实现类，在实现类中调用SqlSession的方法执行sql语句
+使用动态代理方式：
+	1、获取SqlSession对象，SqlSessionFactory.openSession()
+	2、使用getMapper方法获取某个接口的对象，sqlSession.getMapper()
+	3、使用dao接口的方法，调用方法执行mapper文件中的sql语句
+使用要求：
+	1、dao接口和mapper文件放在同一个目录
+	2、dao接口和mapper文件名称一致
+	3、mapper文件中的namespace的值是dao接口的全限定名称
+	4、mapper文件中的<select>,<insert>,<updata>,<delete>等的id是接口中的方法名称
+	5、dao接口中不要紧使用重载方法，不要使用同名、不同参数的方法
+	
+**、封装Mybatis输出结果
+	1）resultType：结果类型，sql语句执行后，数据转为的java对象（类型是任意的）：
+		结果类型的值：类型的全限定名称+类型的别名
+		执行sql语句，然后mybatis调用类的无参数构造方法，创建对象->将ResultSet指定列值付给同名的属性
+	定义自定义类型的别名：
+		（1）在muybatis主配置文件中定义，使<typeAliases>定义别名
+		（2）定义后则可以在resultType中使用自定义别名
+		但是建议使用全限定名称，容易出错
+		
+	2）resultMap：结果映射，指定列名和java对象的属性对应关系
+		（1）自定义列值赋值给某个属性
+		（2）列名和属性名不一致时，一定使用resultMap
+		注：当列名和属性名不一致时，resultType的默认原则是同名的列值赋给同名的属性，所以可以使用列别名（java对象的属性名），将列名命名为和属性名一致：
+			select id as 属性名,name as 属性名,email as 属性名,age as 属性名 from student
+		
+	resultType和resultMap不能一起用，只能二选一
+	
+**模糊查询
+	where name like "%李%"
+	1）Mybatis中第一种：在java代码指定like的内容：
+		select id,name ,email,age from student where name like #{name}
+	2）Mybatis中第二种：在mapper文件中拼接like的内容
+		select id,name ,email,age from student where name like "%" #{name} "%"
+	
+**动态Sql：sql内容是变化的，可以根据条件获取不用的sql语句，主要是where部分发生变化。
+	动态sql的实现，使用的是mybatis提供的标签，<if>/<where>/<foreach>
+	1）<if test="判断java对象的属性值">
+		部分sql语句
+		</if>
+	2）<where>标签 用来包含多个if，当多个if有一个成立的,<where>会自动增加一个where关键字，并去掉 if中多余的and，or
+	3）<foreach>循环java中的数组，list集合，主要用在sql的in语句中
+		实现的功能为：
+			List<Integer> list = new ArrayList<>();
+			list.add(1001);
+			list.add(1002);
+			list.add(1003);
+			
+			//String sql = "select * from student where id in (1001,1002,1003)";
+			
+			//以下语句等同于上面这句
+			String sql = "select * from student where id";
+			
+			StringBuilder builder = new StringBuilder("");
+			int init=0;
+			int length = list.size();
+			
+			//添加开始的(
+			builder.append("(");
+			
+			for(Integer i:list){
+				builder.append(i).append(",");
+			}
+			//去掉末尾的，
+			builder.deleteCharAt(builder.length()-1);
+			//添加末尾的)
+			builder.append(")");
+			sql = sql + builder.toString();
+			System.out.println("sql=" + sql)
+		
+		foreach用法1语法格式：
+			 <foreach collection="" item="" open="" close="" separator="">
+			</foreach>
+		collection：表示接口中的方法参数的类型，如果是数组则使用array，是list集合则使用list	（相当于for(Integer i:list)中的list）
+		item：自定义的，表示数组和集合成员的变量	（相当于for(Integer i:list)中的i)
+		open：循环开始时的字符	(相当于builder.append("(");)
+		close：循环结束时的字符	(相当于builder.append(")");)
+		separator：集合成员之间的分隔符	(相当于builder.append(i).append(",");)
+		
+**复用语法代码（sql代码片段）
+	1）先定义<sql id="自定义名称唯一"> sql语句，表名，字段等 </sql>
+	2）再使用 <include refid="id的值" />
+	
+	eg:
+		<sql id="studentSql">
+			select * from student
+		</sql>
+		
+		<select id="selectstudentIf" resultType="com.power.domain.student">
+			<include refid="studentSql" />
+			where id>0
+		</select>
+
+**数据库的属性配置文件：把数据库连接信息放到一个单独文件中，和mybatis主配置文件分开，利于修改、保存，处理多个数据库的信息
+	1）在resource目录中定义一个属性配置文件”xxx.properties",在属性配置文件中，定义数据，格式为：key=value
+		key：一般作为多级目录，例如：jdbc.mysql.driver
+	2）在mybatis的主配置文件中，使用<property>指定文件的位置
+		格式：${key}
+	
+**PageHelper分页：实现多种数据库的分页，代替limit语句的
+		在查询方法之前，加入PageHelper方法调用进行分页
+	

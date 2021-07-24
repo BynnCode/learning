@@ -1,0 +1,107 @@
+**Ajax**
+（Ajax异步实现步骤）Ajax使用XMLHttpRequest对象：
+	1、创建异步对象，var xmlHttp = new XMlHttpRequest();
+	2、给异步对象绑定事件，onreadystatechange:当异步对象发起请求，获取数据都会出发该事件
+	   该事件需要指定一个函数，在函数中处理状态的变化
+	   btn.onclick = fun1()
+	   function fun1(){
+		......
+	   }
+	   eg:
+		xmlHttp.onreadystatechange = function(){
+			//处理请求的状态变化
+			if(xmlHttp.readyState == 4 && status==200){
+				//可以处理服务器端的数据，更新当前页面
+			}
+		}
+		异步对象的属性 
+			readyState 表示异步对象请求的状态变化（4 表示从服务器返回数据，并处理完成） 
+			status：表示网络通信请求状况，例如200，404，500等，需要当status==200时，网络请求是成功的
+			0：创建异步对象时，var xmlHttp = new XMlHttpRequest()
+				绑定事件 xmlHttp.onreadystatechange = function(){获取服务器端返回的数据，更新dom}
+			1：初始异步请求对象，xmlHttp.open(get,url,true)
+			2：发送请求，xmlHttp.send()
+			3：从服务器端获取了数据，此时获取的是原始的数据，为异步对象内部使用
+			4：异步对象将接受的数据处理完成后，此时开发人员处理数据，然后更新当前页面
+			
+			
+	3、初始异步请求对象：
+		异步的方法open()
+		xmlHttp.open(请求方式get|post,"服务器端的访问地址",同步|异步请求（默认是true,即异步）)
+			同步：一次只能执行一个异步请求，必须请求处理完成后，才能执行其他请求处理
+			异步：在send后执行其他代码，可以同时执行多个异步请求
+		xmlHttp.open("get","loginServlet?name=zs&pwd=123",true);
+		
+	4、使用异步对象发送请求
+		xmlHttp.send()
+		
+	获取服务器端返回的数据，使用异步对象的属性 responseText
+	
+	回调：当请求的状态发生变化时，异步对象都会自动调用2中的onreadystatechange事件对应的函数
+	
+*************插入jQuery的一点知识**********************
+JQuery中给dom对象绑定事件：
+1）$(选择器).事件名称(事件的处理函数)
+	$(选择器)：定位dom对象，dom对象可以有多个，这些dom对象都已绑定时间
+	事件名称：是js中事件去掉on的部分，如js中单击事件onclick()中的事件名称就是click，均为小写
+	事件的处理函数，就是一个function，当事件发生时，执行该函数的内容
+2）on事件绑定
+	$(选择器).on(事件名称,事件的处理函数)
+	事件名称：是js中事件去掉on的部分，如js中单击事件onclick()中的事件名称就是click，均为小写
+	事件的处理函数，就是一个function，当事件发生时，执行该函数的内容
+	eg: <input type="button" id="btn">
+	//处理按钮单击
+	$("#btn").on("click",function(
+		函数主体...
+	))
+
+	
+**使用jquery函数，实现ajax请求的处理
+	1）$.ajax():jquery实现ajax的核心函数
+	2）$.post():使用post方式做ajax请求
+	3）$.get()：使用get方式做ajax请求
+	注：post和get内部都是调用的$.ajax() 
+	
+	$.ajax()函数的使用，函数的参数表示请求的url、请求方式、参数值等信息，参数是一个json结构
+	$.ajax({
+		名称：值，
+		名称1：值，
+		...
+	})
+	eg:
+		$.ajax({
+			async:true,
+			contentType:"application/json",
+			data:{name:"lisi",age:20},
+			dataType:"json",
+			success:function(resp){
+				请求成功后，对返回的数据进行处理
+			},
+			error:function(){
+				错误时执行的函数体；
+			},
+			url:"/ajax",
+			type:"get"
+		})
+	json结构参数：(**表示主要使用的参数	)
+		1)async：boolean，表示请求是否为异步处理，默认是true
+			相当于xmlHttp.open(get,url,true)中的true
+		2)contentType:发送数据到服务器所使用的内容类型，可不写（application/json:请求的参数是json格式)
+		3)**data:可以是字符串，数组，json，表示请求的参数和参数值（常用为json格式),发送到服务器的数据
+		4)**dataType:期望从服务器响应的数据类型(xml/html/text/json),会将dataType发给服务器，servlet会读到该值，从而得知浏览器需要的是json或者xml的数值，则可以返回所需要的数据格式
+		
+		5)**success(data):当请求成功时运行的函数，其中resp是自定义的形参名
+			相当于使用xmlHttpRequest对象，当readyState==4 && status==20执行的函数
+			data就是responseText,是jQuery处理后的数据
+		6)type：规定请求的类型（GEt或Post）,默认是get
+		7)**url:规定发送请求的url
+		8)error():如果请求失败运行的函数
+		
+	$.get()：使用HTTP get请求从服务器加载数据
+	语法格式：$.get(url,data,function(resp),dataType)
+		url:必选，规定需要请求的url
+		function(resp):当请求成功时运行的函数，resp:包含来自请求的结果数据
+		
+	$.post()：
+	语法格式：$.post(url,data,function(resp),dataType)
+	

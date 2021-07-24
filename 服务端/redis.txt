@@ -1,0 +1,388 @@
+**Redis简介**
+	Redis(Remote Dcitionary Server)是一种数据库，能够存储数据、管理数据的一种软件。是基于内存运行的，数据大多数都是存储内存的，适合存储频繁访问、数据量小的数据。
+	又称缓存数据库
+	
+	数据库应用的发展历程：单机数据库时代 -- 缓存时代 -- 读写分离时代 -- 分表分库时代（集群） （以上都是关系型数据库，即以表为单位存储：MySql、Oracle、DB2、sqlServer等）
+	--非关系型数据库(NoSql)：彻底改变底层存储机制，不再采用关系型数据模型，而采用聚合数据结构存储数据,例如：redis、mongoDB、HBase...
+	
+	redis特点：
+		1、支持数据持久化。可将内存中的数据保存在磁盘中，重启时可再次加载使用（使用单线程）
+			redis是将所有数据全部放在内存中的，所以使用单线程操作是最高的，多线程(上下文切换，耗时操作)对于内存系统来说，若没有上下文的切换效率是最高的，多次读写都在一个cpu上，在内存中是最佳方案。
+		2、支持多种数据结构。不仅支持key-value类型数据，还支持list、set、zset(有序集合)、hash等数据结构的存储
+		3、支持数据备份。master-slave模式的数据备份
+		
+	使用redis：
+		1、下载、解压、编译、安装
+		2、启动redis服务
+			1）前台启动：在任何目录下执行 redis-server
+			2）后台启动：在任何目录下执行 redis-server &
+			3）启动redis服务时，指定配置文件：redis-server redis.conf &
+		3、关闭redis服务
+			1）通过kill命令
+				ps -ef|grep redis 查看pid
+				kill -9 pid
+			2）通过redis-cli命令关闭：
+				redis-cli shutdown
+		4、redis的客户端：用来连接redis服务，向redis服务端发送命令，并且显示redis服务处理结果
+			redis-cli：redis的客户端，使用redis-cli就可以启动redis的客户端程序
+			redis-cli:默认连接127.0.0.1(本机)的6379端口上的redis服务
+			redis-cli -p 端口号：连接127.0.0.1(本机)的指定端口上的redis服务
+			redis-cli -h ip地址 -p 端口: 连接指定ip主机上的指定端口的redis服务
+			退出客户端：exit/quit
+	
+**redis基本知识**
+	1、测试redis服务的性能：redis-benchmark
+	2、查看redis服务是否正常运行：ping，若正常，则返回pong
+	3、查看redis服务器的所有统计信息：info
+	4、redis的数据库实例：(类似mysql数据库实例)
+	   redis中的数据库实例只能由redis服务来创建和维护，开发人员不能修改和自行创建数据库实例，默认情况下redis会自动创建16个数据库实例，并且给这些数据库实例进行编号；
+	   从0开始，一直到15，使用时通过编号来使用数据库，可以通过配置文件，指定redis自动创建的数据库个数，redis的每个数据库实例本身占用的存储空间很少，所以不会占用太多存储空间、
+		默认情况下，redis客户端连接的是0号数据库实例，使用：select index切换数据库实例
+	5、查看当前数据库实例中所有key的数量：dbsize
+	   查看当前数据库实例中所有的keys：keys *
+	   清空数据库实例：flushdb
+	   清空所有数据库实例：flushall
+	   查看redis中的配置信息：config get *
+	   查看redis中指定的配置信息：config get parameter
+	   
+	 6、redis的5种数据结构
+		程序是用来处理数据的，redis是用来存储数据的，程序处理完的数据要存储到redis中，不同特点的数据要存储在redis中不同类型的数据结构中
+		程序处理完的数据一般在内存中存储的变量类型：字符串、list列表、set集合、pojo（类似于字典）
+		redis存储的变量类型：
+			String(字符串)：单key，单value，最基本的数据结构，能存储任何类型的数据
+			list(列表)：单key，多有序value，按照插入顺序排序
+			set(集合)：单key，多无序value，无序无重复集合
+			hash(散列)：单key：对象（属性：值），适合存储对象，pojo对象，
+			zset(有序集合)：单key，多有序value(和list不一样)，介于list和set之间的结构
+		底层最基本的数据结构：key-value
+			
+**redis常用命令(相当于MySql里的SQL命令)**
+	1、redis关于key的操作命令(redis-key)：
+	    1)keys pattern：查看数据库中所有符合模式pattern的key，pattern可以使用通配符
+	      通配符：* 表示0或多个字符，如：keys * (查看所有的key)
+			   ？表示单个字符
+			   []表示选择[]内的一个字符
+	    2)exists key: 判断key在数据库中是否存在,若存在，则返回1，若不存在，则返回0
+					 返回值是存在key的数量
+	    3)move key index：移动指定key到指定的数据库实例
+		4)ttl：查看指定key的剩余生存时间，若没设置  生存时间，返回-1，若key不存在则返回-2
+		5)expire key seconds：设置key的最大生存时间
+		6)type key：查看指定key的数据类型
+		7)rename key：重命名key
+		8)del key 删除指定的key，返回值是实际删除的key的数量
+		
+	2、redis关于String类型数据的操作命令：
+		1)set key value：将String类型的数据设置到redis中(若key已存在)
+			eg：set zsname zhangsan
+		2)get key：从redis中获取String类型的数据
+			eg：get zsname
+		3)append key value：追加字符串，返回值为追加之后的字符串长度，若当前key不存在，就相当于set key value
+		4)strlen key: 获取字符串数据的长度
+		5)incr key：对字符串数值进行+1运算
+		  incrby key offset：对字符串值进行 + offset 运算
+		6)decr key：对字符串数值进行-1运算
+		7)getrange key startIndex endIndex：闭区间获取字符串key中从startIndex到endIndex的字符组成的子字符串，下标可以为负，表示自右至左 
+		8)setrange key startIndex value：用value覆盖从下标为 startIndex 开始的字符串
+		9)setex key seconds value：设置字符串数据的同时，设置最大生命周期；
+		10)setnx key value：设置String类型的数据value到redis数据库中，当key不存在时，设置成功，否则放弃设置；
+		11)mset key1,key2,key3......：批量将String类型的数据设置到redis中
+		12)mget key1,key2,key3......：批量从redis中获取String类型的数据
+		13)msetnx :批量将String类型的数据设置到redis数据库中，当所有key都不存在时则设置成功，否则(有一个存在),则全部放弃设置
+			应用在对象中：set user:1 {name:zhangsan,age:3}	#设置一个以user:1为对象名值为json字符的对象
+			此处的key是一个巧妙的设计：user:{id}:{filed}
+			eg: mset user:1:name zhangsan user:1:age 2
+		14)getset：先get后set
+			eg: 若不存在值，则返回nil，若存在值，则返回原来的值后再设置新的值
+		**String类似的使用场景：value除了是字符串还可以是数字**
+				* 计数器
+				* 统计多单位的数量
+				* 粉丝数
+				* 对象缓存存储
+		
+	3、redis关于 列表list 类型数据的操作命令：
+		在redis中，可以将list用成：栈、队列、阻塞队列等，所有的list命令都是以l开头的
+		1)lpsuh：将一个或多个值，插入到列表头部（左边）
+		2)rpush：将一个或多个值，插入到列表尾部（右边）
+		3)lrange: 通过区间获取具体的值
+			eg:lrange list 0 -1 : 查看列表的所有元素
+		4)lpop/rpop：移除列表的第一个/最后一个元素
+		5)lrange：通过下标获取list的某一个值
+		6)lLen：返回列表的长度
+		7)lrem key count value：移除list集合中指定个数的value值，精确匹配
+		8)ltrim key start stop：通过下标截取指定的长度，同时修改了原来的key，只剩下截取的元素
+		9)rpoplpush sourcce destination：移除列表的最后一个元素，将它移动到新的列表中
+			eg: rpoplpush mylist otherlist
+		10)lset：将列表指定下标的值替换为另外一个值，更新操作
+			lset list 0 item: 若列表不存在则会报错，所以前提是得列表已建好
+		11)linsert key defore|after pivot value: 将某个具体的value插入到某个元素pivot的前面或后面 
+		**实际上是一个链表，left/right都可以插入值**
+			若key不存在，则创建新的链表，若key存在，则新增内容；
+			若移除了所有值、空链表，也代表不存在；
+			在两边插入或者改动值，效率最高
+		实现：消息排队、消息队列(Lpush、Rpop)、栈(Lpush、Rpop)
+		
+	4、set集合(set中的元素不能重复,无序不重复集合)
+		所有set命令都是以s开头的
+		1)sadd：set集合中添加元素
+		2)smembers key: 查看指定set的所有值
+		3)sismember: 判断某一个值是不是在set集合中
+		4)scard：获取set集合中的内容元素个数
+		5)srem：移除set集合中指定的元素
+		6)srandmember key：随机抽选出一个元素
+		7)srandmember key count：随机抽选出指定count个数的元素
+		8)spop：随机删除一些set集合中的元素
+		9)sdiff key1 key2: 查看两个集合的差值
+		10)sinter key1 key2：查看两个集合的交集（应用在共同好友）
+		11)sunion key1 key2: 查看两个集合的并集
+		应用：微博或其他平台，将A用户所有关注的人都放在一个set集合中，将粉丝也放在一个集合中，则可以实现共同关注、共同爱好、二度好友、推荐好友等功能
+		
+	5、hash 哈希表：Map集合，是具体的key-value
+	所有hash命令都是以h开头的，本质和Strimng没有太大区别，还是一个简单的key-value
+		1）hset：set一个具体的key-value
+		2）hget：获取一个字段值
+		3）hmset：set多个key-value
+		4）hmget：获取多个字段值
+		5）hgetall获取全部的数据
+		6）hdel：删除hash指定的key字段，对应的value也随之删除
+		7）hlen：获取hash表的字段数量
+		8）hexists：判断hash中指定字段是否存在
+		9）hkeys：获得所有的字段
+		10）hvals：获取所有的
+		11）hincrby key field increment: 指定增量  
+		12）hsetnx：若不存在则可以设置，若存在则不能设置
+		应用：hash变更的数据 user name age，尤其是用户信息之类的，经常变动的信息，hash更适合对象的存储，String更适合字符串的存储
+		
+	6、有序集合zset：在set的基础上，增加了一个值，所有的命令都是以z开头的
+		1）zadd key score value：添加一个值 eg：zadd myset 1 one
+		2）zadd key score value score value：添加多个值  eg：zadd myset 2 two 3 three
+		3）zrange ：查看指定区间的值
+		4）zrangebyscore 实现排序
+			eg：zadd salary 2500 xiaohong
+				zadd salary 500 xiaoming
+				zadd salary 1500 xiahua	#添加三个用户级
+				zrangebyscore salary -inf +inf	： 显示全部的用户，从小到大
+				zrangebyscore salary -inf +inf withscores: 显示全部的用户并且附带成绩
+				zrangebyscore salary -inf 2500 withscores: 显示工资小于2500员工的降序
+			
+		5）zrem：移除有序集合中指定的元素
+		6）zcard：获取有序集合中的个数
+		7）zrevrange：从大到小排序
+		8）zcount key start stop: 获取指定区间的成员数量
+		应用：set排序，存储班级成绩表、工资表排序、热度排行应用实现、带权重排名的消息、top表
+		
+	7、特殊类型：
+		(a)geospatial地理位置：朋友定位、附近的人、打车距离计算；
+			1）geoadd key 值(经度、纬度) 名称
+			2）geopos：获取指定城市的经度和纬度
+			3）geodist：返回两个给定位置之间的距离
+			4）georadius china:city 110 30 50km：以给定的经纬度(110,30)为中心，找出某一半径(50km)内的元素
+			   georadius china:city 110 30 500 km widthdist :显示到中间距离的位置
+			   georadius china:city 110 30 500 km widthcoord :显示他人的定位信息
+			   georadius china:city 110 30 500 km widthcoord :筛选出指定的结果
+			5）georadiusbymember：找出位于指定元素周围的其他元素
+			6）geohash：返回一个或多个位置元素的geohash标识符(将二维的经纬度转换为一维的字符串)
+			注：geo底层的实现原理是zset，即可以使用zset来操作geo
+		
+		(b)hyperloglog：基数（不重复的元素个数），hyperloglog是基数统计的算法，但存在一定的错误率(0.81%)
+			eg：网页的UV（一个人访问一个网站多次，但还是算一个人的访问量）
+			优点：占用的内存是固定的，2^64（lang类型）不同元素的技术，只需要费12kb内存
+			  1）pfadd：创建第一组元素
+			  2）pfcount：统计mykey元素的基数数量
+			  3）pfmerge p1 p2 p3：合并两组元素p1、p2，生成并集p3
+			  
+		(c)bitmaps(位存储)
+			应用：统计用户信息、活泼、不活跃、登陆/未登录，打卡状态，只有两个状态码，都可以使用bitmaps
+			1）setbit：建立数据
+			2）getbit：统计数据
+			3）bitcount：统计操作（例如统计打卡天数）
+			
+**redis的配置文件***
+	redis根目录下提供redis.conf配置文件，若不使用配置文件，则redis会按照默认参数运行；若使用，则在启动redis服务时必须指定所使用的配置文件
+	1）redis配置文件中关于网络的配置：
+		port：指定redis服务所使用的端口，默认是6379
+		bind：配置客户端连接redis服务时，所能使用的ip地址，默认可以使用redis服务所在主机上任何一个ip都可以，通常会配置一个ip
+		protected-mode yes #保护模式
+		若配置了port和bind，则客户端连接redis服务时，必须指定port和ip
+		eg：redis-cli -h ip -p port
+		关闭：redis-cli redis-cli -h ip -p port shutdown 
+		tcp-keepalive:连接保活策略
+		
+	2）redis常规配置
+		daemonize yes : 以守护进程方式运行，默认为no
+		loglevel：配置日志级别
+		logfile：指定日志文件，redis在运行时会输出一些日志信息，默认情况下，会输出到控制台，可以使用logfile配置日志文件，使redis将日志信息输出到指定文件下
+		快照：持久化，在规定时间内，执行了多少次操作，则会持久化到文件（RDB/AOF）
+			save 900 1：若900s内至少有1个key进行了修改，则进行持久化操作
+			save 300 10：若300s内至少有10个key进行了修改，则进行持久化操作
+		
+		
+	3）安全配置：
+		requirepass：设置访问redis服务时所使用的密码，默认不使用。此参数必须在protected-mode=yes时才起作用
+					 设置了密码验证后，客户端连接redis服务时，必须使用密码连接：redis-cli -h ip -p port -a pwd
+		maxclients 	1000：限制连接上redis最大客户端的数量	 
+
+**redis持久化***
+	redis是内存数据库，加快读取速度的同时也对数据安全性产生新的问题，即服务器宕机后，redis数据库的所有数据都会全部丢失，为解决该问题，redis提供了持久化功能：RDB和AOF
+	redis提供持久化策略，在适当时机采用适当手段将内存数据持久化到磁盘，每次redis服务启动时，都可以将磁盘中的数据再次加载内存中使用。
+	在指定的时间间隔内将内存中的数据集快照写入磁盘-=-Snapshot快照，恢复是不是将快照文件直接读到内存中。redis会单独创建(fork)一个子进程来进行持久化，会先将数据写入到一个临时文件中，待持久化结束，再用这个临时文件替换上次持久化好的文件中，在该过程中，主进程是不进行任何IO操作的。
+	1）RDB(Redis DataBase)策略：在指定时间间隔内，redis服务执行指定次数的写操作，会自动触发一次持久化操作。
+				RDB策略是redis默认的持久化策略，redis服务开启时此持久化策略已经默认开启
+		save <seconds> <changes> ：配置持久化策略
+		dbfilename：配置redis RDB持久化数据存储的文件
+		dir：配置redis RDB持久化文件所在目录
+		弊端：未触发RDB策略的数据，可能会导致缺失，不能完全持久化，即最后一次持久化的数据可能丢失。
+		
+	2）	为了弥补RDB策略不能完全持久化的弊端 --> AOF(Append Only File)策略 
+		以日志的形式来记录每个写操作，将Redis执行过的所有指令都记录下来，不记录读操作，只追加文件但不改写文件，redis启动之初会读取该文件重新构建数据，即redis重启时就根据日志文件的内容将写指令从前到后执行一次以完成数据的恢复工作。
+		redis还能对AOF文件进行后台重写，使得AOF文件的体积不至于过大 
+				 效率比较低，redis默认不开启
+			appendonly：配置是否开启AOF策略
+				若aof文件有错误，此时redis启动失败，则需要修复这个aof配置文件。通过redis-check-aof --fix则可以进行修复
+			appendfilename：配置操作日志文件
+		优点：*每次修改都同步，文件完整会更好
+			  *每秒同步一次，可能会丢失一秒的数据
+			  *从不同步，效率是最高的
+		缺点：*相对于数据文件来说，aof远远大于RDB，修复速度也比RDB慢；
+			  *AOF运行效率也比RDB慢，所以redis默认的配置是RDB
+			  
+	根据数据特点来决定开启哪种持久化策略，一般开启RDB。
+	若redis只做缓存，即希望数据在服务器运行时存在，则可以不使用任何持久化
+	
+**redis事务***	   
+	事务：将一组数据库放在一起执行，保证操作原子性(要么同时成功，要么同时失败)
+	redis事务：允许将一组reids命令放在一起执行，将命令进行序列化，然后一起执行，保证部分原子性
+		redis单条命令确保原子性，但事务不保证原子性，且redis没有隔离级别的概念，所有食物在发起执行命令时才会执行
+		1）multi：用来标记一个事务的开始
+		2）exec：用来执行事务队列中所有的命令
+		3）redis事务只能保证部分原子性
+			(1)若一组命令中，有一些命令在压入事务队列中发生错误，则本事务中所有的命令都不会执行，则可以保证事务的原子性；
+			(2)若命令压入队列时未出错，但执行事务队列命令时发生错误，则只会影响发生错误的命令，不会影响其他命令的执行，不能保证事务的原子性。
+		4）discard：清除所有已经压入队列中的命令，并结束整个事务
+		5）乐观锁(加个锁的字段)
+		mysql中：
+			table结构(id balance version)
+			update table balance=balance-dept,version=version+1
+			where id=xxx and version=100
+		redis：
+			watch：监控某一个键，当事务在执行时，监控的键代码值发生变化时，则本事务放弃执行，否则正常执行
+		6）unwatch：放弃监控所有的键
+		
+**redis消息的发布与订阅***
+	redis客户端订阅频道，消息的发布者往频道上发布消息，所有订阅此频道的客户端都能接收到该消息
+	1）subscribe：订阅一个或多个频道的消息、
+		通过subscribe命令订阅某频道后，redis-server里维护了一个字典，字典的键就是频道，字典的值就是一个链表，链表中保存了所有订阅这个channel的客户端，subscribe命令，就是将客户端添加到给定channel的订阅链表中。 
+	2）publish：将消息发布到指定频道
+	消息中间链（用的多的是activeMQ2）
+	3）psubcribe：订阅一个或多个频道的消息（功能更强大。频道名支持通配符）
+	应用场景：
+		1、实时消息系统
+		2、实时聊天（频道当作聊天室，将消息显示给所有人）
+		3、订阅，关注系统
+		4、复杂的场景可以使用消息中间件MQ来实现
+	
+**redis的主从复制(集群搭建)**
+	主机数据更新后根据配置和策略，自动同步到从机的master/slave机制，master以写为主，slave以读为主
+	一主二从原理：主多从少、主写从读、读写分离、主写同步复制到从
+	主要搭建一主二从redis集群
+	1）搭建三台redis服务：使用一台redis模拟三台redis服务
+	   通过提供三份redis配置文件(通过修改三份配置文件可实现)，分别使用3个redis配置文件，启动3个redis服务
+	2）通过redis客户端分别连接三台redis服务
+	   redis-cli -h 127.0.0.1 -p 6379
+	   redis-cli -h 127.0.0.1 -p 6380
+	   redis-cli -h 127.0.0.1 -p 6381
+	3）查看3台redis服务在集群中的主从角色
+	   info replication 
+	4）先在其中一台(6379)上进行写操作：三台redis服务相互独立，互不影响
+	5）设置主从关系：设从不设主
+	   在6380上执行：slaveof 127.0.0.1 6379
+	   在6381上执行：slaveof 127.0.0.1 6379
+	6）全量复制：一旦主从关系确定，会自动将主库上已有的数据同步复制到从库
+	   增量复制：主库进行写数据会自动同步到从库
+	7）主写从读、读写分离：即在6380、6381上执行写操作会报错
+	8）主机宕机（关闭6379），从机会原地待命
+	9）主机恢复后（重启6379），一切恢复正常
+	10）从机宕机（如6380关闭），即主机会少一个从机，其他从机不变
+	11）从机恢复（如6380重启），必须重新设置主从关系，即在6380上重新执行：slaveof 127.0.0.1 6379
+	12）从机上位：
+		（1）主机宕机，从机会原地待命；
+		（2）若主机恢复不了，需要其中一个从机代替主机：
+			从机断开原来主从关系：salveof no one;
+			重新设置主从关系：其他从机上执行：slaveof 127.0.0.1 6380
+		（3）之前主机恢复，则失去主从关系，加入集群变成主机或从机都可以，都要重新设立主从关系
+		
+	总之，一台主机配置多台从机，一台从机又可以配置多台从机，形成一个庞大的集群结构。可以减轻一台主机的压力，但增加了服务间的延迟时间
+	
+**redis的哨兵模式**
+	“主机宕机、从机上位”的自动模式
+	1）提供哨兵配置文件：sentinel.conf(自带)
+		一般需要自己创建一个配置文件(在redis安装目录下创建配置文件)：redis_sentinel.conf 
+			sentinel monitor dc-redis 127.0.0.1 6379 1
+	2）启动哨兵模式：
+		redis-sentinel redis_sentinel.conf
+	3）主机宕机：哨兵程序自动选择从机上位
+	4）若主机恢复：此时会变成slave，自动从属于新的主机
+	
+
+**Jedis操作redis**
+	Jedis几乎涵盖了Redis的所有命令，操作Redis的命令在Jedis中以方法形式出现
+	在IDEA中执行：Jedis jedis = new Jedis("ip",port); //连接redis服务
+				  相当于 redis-cli -h ip -p pwd
+				  
+	在springboot2.x后，原来使用的jedis被替换为lettuce
+		jedis：采用的直连，多线程操作不安全。若想避免不安全，则使用jedis pool连接池（更像BIO模式，阻塞的）
+		lettuce：采用netty，实例可以在多个线程中进行共享，不存在线程不安全的情况。可以减少线程数量，更像NIO模式。
+	源码分析：
+		@Bean
+		@ConditionalOnMissingBean(name = {"redisTemplate"})	//后面可以自定义一个redisTemplate来替换这个默认的
+		@ConditionalOnSingleCandidate(RedisConnectionFactory.class)
+		public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+			//默认的RedisTemplate没有过多的设置，redis对象都需要序列化
+			//两个泛型都是Object类型，后面使用需要强制转换<String,Object>
+			RedisTemplate<Object, Object> template = new RedisTemplate();
+			template.setConnectionFactory(redisConnectionFactory);
+			return template;
+		}
+
+		@Bean
+		@ConditionalOnMissingBean	//由于String是redis中最常用的类型，所以单独提出 定义了一个bean
+		@ConditionalOnSingleCandidate(RedisConnectionFactory.class)
+		public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+			StringRedisTemplate template = new StringRedisTemplate();
+			template.setConnectionFactory(redisConnectionFactory);
+			return template;
+		}
+	
+**redis缓存穿透和雪崩**
+	redis缓存的使用，极大的提升了应用程序的性能和效率，特别是数据查询方面，同时带来了数据的一致性问题等相关问题：
+		缓存穿透
+		缓存雪崩
+		缓存击穿
+		
+	1、缓存穿透：(查不到)
+	用户想要查询一个数据，发现redis内存数据库没有，即缓存没有命中，于是向持久层数据库查询，发现数据库也没有，于是本次查询失败。若当用户很多时，缓存都没有命中(秒杀活动),于是都请求持久层数据库，则会给持久层数据库造成很大压力，相当于出现了缓存穿透。
+	解决方法：
+		**布隆过滤器：是一种数据结构，对所有可能查询的参数以hash形式存储，在控制层先进行校验，不符合则丢弃，从而避免了对底层存储系统的查询压力 
+		**缓存空对象：当存储层不命中后，返回的空对象将其缓存起来，同时设置一个过期时间，之后再访问这个数据将会从缓存中获取，保护了后端数据源
+		  出现的问题：1）若空值被缓存起来，则需要更多的空间存储更多的键，这里面还会有很多空值的键
+					  2）即使对空值设置了过期时间，还是会存在缓存层和存储层的数据会有一段时间窗口的不一致，对于需要保持一致性的业务会有影响
+					 
+	2、缓存击穿：(请求太大，缓存过期)
+		例如微博服务器宕机、B站服务器宕机
+		缓存击穿是指一个key非常热点，不停地扛着高并发，大并发集中对这点进行访问，当key失效瞬间，持续的大并发就穿破缓存，直接请求数据库。
+		这类大并发的数据一般是热点数据，由于缓存过期，会同时访问数据库来查询最新数据，并且回写缓存，会导致数据库瞬间压力过大
+	解决办法：
+		*设置热点数据永不过期：缓存层面来看，没设置过期时间，则不会出现key过期后产生的问题(但一直缓存会占用一定的空间)
+		*加互斥锁：使用分布式锁，保证对于每个key同时只有一个和线程去查询后端服务，其他线程没有获得分布式锁的权限，因此只需要等待即可。该方式将高并发的压力转移到了分布式锁，因此对分布式锁考验很大
+		
+	3、缓存雪崩：
+		是指在某一时间段内，缓存集中过期失效，redis宕机。集中过期不是很致命，一般的缓存雪崩，一定是在某个时间段集中创建缓存，数据库是可以顶住压力的，其实对数据库就是产生周期性的压力。
+		比较致命的雪崩，是缓存服务器某个节点宕机或断网，此时对数据库服务器造成的压力是不可预知的，很可能一瞬间就将服务器压垮。
+		出现场景：双十一、双十二购物，可以停掉一些服务(退款服务)，保证主要的服务可用
+	解决方法：
+		*redis高可用：既然redis可能会挂掉i，那么久增设多几台redis，其实就是搭建的集群（异地多活）
+		*限流降级：在缓存失效后，通过加锁或队列来控制读数据库写缓存的线程数量，例如对某个key只允许一个线程查询数据和写缓存，其他线程等待。
+		*数据预热：在正式部署之前，将可能的数据预先访问一遍，这样可以将大量访问的数据加载到缓存中。在即将发生大并发访问前手动触发加载缓存不同的key，设置不同的过期时间，让缓存失效的时间点尽量均匀
+		
+		
+		
+				 
