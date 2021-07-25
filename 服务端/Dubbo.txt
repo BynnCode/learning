@@ -2,17 +2,59 @@
 	分布式系统是若干个独立系统的集合，但使用起来却像是在使用一套系统
 	应用架构的演变：单一架构 -- 垂直应用架构 -- 分布式架构（基于RPC：远程过程调用）：将业务拆分后，用某种方式实现各个业务模块的远程调用和复用，一个好的RPC框架则决定了分布式架构的性能
 	
-	Dubbo是一个高性能的RPC框架，解决了分布式中的相互调用问题
+	RPC(Remote Procedure Call) 远程过程调用，一种进程间通信方式，也是一种技术思想，而不是规范。允许程序调用另一个地址空间(一般是共享网络下的另一台机器)的过程或函数，不用编码这个远程调用的细节。
+	Dubbo是一个高性能的Java RPC框架，解决了分布式中的相互调用问题
+		可实现负载均衡、服务自动注册与发现、高度可扩展能力、运行期流量调度(轻松实现灰度发布)、
 	
 **Dubbo框架**
 	Dubbo是一款高性能、轻量级的开源Java RPC框架，提供了三大核心能力：面向接口的远程方法调用、智能容错和负载均衡以及服务自动注册和发现
-	Dubbo是一个分布式服务框架，致力于提供高性能和透明化的RPC远程服务调用方案、服务治理方案。
+	Dubbo是一个分布式服务框架，致力于提供高性能和透明化的RPC远程服务调用方案、服务治理方案。可视化服务治理与运维
 	
 	Dubbo支持的协议：官方推荐使用dubbo协议，默认端口20880
-	基本架构：看官网
+	基本设计架构：看官网
+		0.(Container->Provider) -- 1.(Provider->Registery) -- 2.(Consumer->Registery) -- 3.(Registery->Consumer) -- 4.(Consumer->Provider) -- 5.(Monitor)
 	
 **Dubbo使用**
-	1、直连方式
+	1、直连方式（没有注册中心Registry，Consumer -- Provider）
+	    （1）
+			1）创建一个maven web工程：服务提供者
+			2）创建一个实体bean查询的结果
+			3）提供一个服务接口：xxx
+			4）实现该服务接口：xxxImpl
+			5）配置Dubbo服务提供者的核心配置文件
+				a.声明Dubbo服务提供者的名称：保证唯一
+					<dubbo:application name="xxx" />
+				b.声明Dubbo使用的协议和端口号,dubbo官方推荐使用dubbo协议，端口号默认是20880
+					name：指定协议名称  port指定协议端口号
+					<dubbo:protocol name="dubbo" port="20880">
+				c.暴露服务dubbo:service，使用直连方式
+					interface:暴露服务接口的全限定类名，ref：接口引用的实现类在spring容器中的标识，registry:若不使用注册中心，则值为：N/A
+					<dubbo:service interface="....UserService" ref="userService" registry="N/A">
+				d.将接口实现类加载到Spring容器中
+					<bean id="userService" class="....UserService>
+			6）添加监听器
+		（2）
+			1）创建一个maven web工程：服务消费者
+			2）配置pom文件：添加需要的依赖（Spring，Dubbo）
+			3）设置Dubbo的核心配置文件
+				a.声明Dubbo服务消费者的名称：保证唯一
+					<dubbo:application name="xxx" />
+				b.引用远程服务接口：
+					id：远程服务接口对象名称 
+					interface：调用远程接口的全限定类名 
+					url：访问服务接口的地址 
+					registry:不使用注册中心，值为：N/A
+					<dubbo:reference id="userService" interface="" url="" registry="N/A"
+				c.暴露服务，使用直连方式
+			4）编写Controller
+			5）配置中央调度器（即一个Servlet：DispatcherServlet）
+			
+		dubbo官方推荐必须要有一个接口工程，就是一个maven java工程。要求接口工程里存放的内容如下：
+			1、对外暴露的服务接口（service接口）
+			2、实体bean对象
+	
+	2、dubbo服务化最佳实践
+				
 		
 	
 	
