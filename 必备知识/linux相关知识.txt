@@ -1,0 +1,9 @@
+**rpm安装jdk上线项目**(jdk：在线发布一个SpringBoot项目)
+
+
+**解压缩(tomcat，启动并通过外网访问，发布网站)**
+
+
+**yum在线安装(docker：直接安装运行跑起来docker)
+
+
